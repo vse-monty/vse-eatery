@@ -1,0 +1,38 @@
+{
+  "name": "vse-eatery",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "@mdi/font": "^3.6.95",
+    "core-js": "^2.6.5",
+    "socket.io-client": "^2.2.0",
+    "types-for-adobe": "github:pravdomil/types-for-adobe",
+    "vue": "^2.6.10",
+    "vue-router": "^3.0.3",
+    "vue-socket.io": "^3.0.7",
+    "vue-store": "^0.3.1-moved",
+    "vuetify": "^1.5.5"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.8.0",
+    "@vue/cli-service": "^3.8.0",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.1",
+    "vue-cli-plugin-vuetify": "^0.5.0",
+    "vue-template-compiler": "^2.6.10",
+    "vuetify-loader": "^1.0.5"
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}
