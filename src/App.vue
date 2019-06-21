@@ -19,6 +19,7 @@ import menus from "./components/main/menus.vue";
 import alert from "./components/main/alert";
 import notification from "./components/main/notification.vue";
 import navbar from "./components/main/navbar.vue";
+import io from "socket.io-client"
 
 export default {
   name: "App",
@@ -37,6 +38,7 @@ export default {
   },
   data: () => ({
     csInterface: null,
+    socketIO: null,
     identity: null,
     stylizer: null,
     progress: null,
@@ -56,6 +58,15 @@ export default {
     this.csInterface = new CSInterface();
     this.csInterface.addEventListener("console", this.consoler);
 
+    console.log('demonty starting mounted function');
+
+    this.socketIO = io('http://localhost:9574', {
+      autoConnect: false,
+    });
+    
+    console.log(this.socketIO);
+
+    console.log('demonty ended mounted function');
     // Utility components are already mounted prior to this
 
     console.log(
@@ -64,7 +75,7 @@ export default {
       }`
     );
     this.isMounted = true;
-
+    console.log('loading scripts');
     this.loadUniversalScripts();
 
     // Vue Router must be manually initialized in CEP:
@@ -99,11 +110,19 @@ export default {
     },
     loadUniversalScripts() {
       // Preloads universal scripts and main host script file
-      this.loadScript(`${this.identity.root}/src/host/universal/json2.jsx`);
-      this.loadScript(`${this.identity.root}/src/host/universal/Console.jsx`);
+      try{
+      this.loadScript(`${this.identity.root}/src/host/universal/json2.jsx`);}
+      catch(err){ console.log(err)}
+      try{
+      this.loadScript(`${this.identity.root}/src/host/universal/Console.jsx`);}
+      catch(err){ console.log(err)}
+      try{
       this.loadScript(
         `${this.identity.root}/src/host/${this.identity.appName}/host.jsx`
-      );
+      );}
+      catch(err){ console.log(err)}
+
+      console.log('scripts loaded');
     },
     consoler(msg) {
       // Catches all console.log() usage in .jsx files via CSEvent
