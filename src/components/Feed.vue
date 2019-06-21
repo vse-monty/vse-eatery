@@ -14,6 +14,13 @@
         icon>
         <v-icon>mdi-arrow-up-bold</v-icon>
         </v-btn>
+       
+        <v-btn
+        @click="startServer()"
+        color="primary"
+        icon>
+        <v-icon>mdi-arrow-left-bold</v-icon>
+        </v-btn>
 
     <v-container grid-list-md text-xs-center>
     <v-layout column wrap>
@@ -44,6 +51,8 @@ export default {
                 '118115'],
 
     csi: null,
+    socket: null,
+
   }),
   computed: {
     app() {
@@ -53,20 +62,34 @@ export default {
   mounted() {
     this.app.home = this;
     this.csi = this.$root.$children[0].csInterface;
+    this.socket = this.$root.$children[0].socketIO;
 
 
     this.addAppListeners();
 
   },
   methods: {
+    startServer(){
+      //this.app.socketIO.connect();
+      //console.log('attempting to start server panel');
+      // console.log(this.csi);
+      // try{
+      //   this.csi.requestOpenExtension("com.vse-eatery-s.panel", "");}
+      //   catch(err){
+      //     console.log(err);
+      //   }
+
+      // console.log(this.csi.getExtension);
+    },
     connectTo(){
+      console.log('attempting to connect to server')
       this.app.socketIO.connect();
+      
     },
     runScript(){
       this.csi.evalScript("getOpenDocumentVariables()");
     },
     addAppListeners(){
-
         //listener for getOpenDocumentVariables()
         //returns array of illustrator variables
         // event.data = [{name, type}]
@@ -80,9 +103,13 @@ export default {
         }
         console.log('data: ->');
         console.log(event.data);
+
+        window.socketIO.emit('data', JSON.stringify(event));
+        console.log('socket');
+        console.log(window.socketIO);
       });
 
-    }
+    },
   },
 };
 </script>

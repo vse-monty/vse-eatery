@@ -60,11 +60,10 @@ export default {
 
     console.log('demonty starting mounted function');
 
-    this.socketIO = io('http://localhost:9574', {
+    window.socketIO = io('http://localhost:9574', {
       autoConnect: false,
     });
-    
-    console.log(this.socketIO);
+    this.socketIO = window.socketIO;
 
     console.log('demonty ended mounted function');
     // Utility components are already mounted prior to this
@@ -75,7 +74,6 @@ export default {
       }`
     );
     this.isMounted = true;
-    console.log('loading scripts');
     this.loadUniversalScripts();
 
     // Vue Router must be manually initialized in CEP:
@@ -110,19 +108,9 @@ export default {
     },
     loadUniversalScripts() {
       // Preloads universal scripts and main host script file
-      try{
-      this.loadScript(`${this.identity.root}/src/host/universal/json2.jsx`);}
-      catch(err){ console.log(err)}
-      try{
-      this.loadScript(`${this.identity.root}/src/host/universal/Console.jsx`);}
-      catch(err){ console.log(err)}
-      try{
-      this.loadScript(
-        `${this.identity.root}/src/host/${this.identity.appName}/host.jsx`
-      );}
-      catch(err){ console.log(err)}
-
-      console.log('scripts loaded');
+      this.loadScript(`${this.identity.root}/src/host/universal/json2.jsx`);
+      this.loadScript(`${this.identity.root}/src/host/universal/Console.jsx`);
+      this.loadScript(`${this.identity.root}/src/host/${this.identity.appName}/host.jsx`);
     },
     consoler(msg) {
       // Catches all console.log() usage in .jsx files via CSEvent

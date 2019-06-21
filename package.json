@@ -9,6 +9,8 @@
   "dependencies": {
     "@mdi/font": "^3.6.95",
     "core-js": "^2.6.5",
+    "express": "^4.17.1",
+    "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
     "types-for-adobe": "github:pravdomil/types-for-adobe",
     "vue": "^2.6.10",

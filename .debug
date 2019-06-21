@@ -3,7 +3,6 @@
     <Extension Id="com.vse-eatery.panel">
         <HostList>
     <Host Name="ILST" Port="8420" />
-    <Host Name="PHXS" Port="8421" />
         </HostList>
     </Extension>
 </ExtensionList>
