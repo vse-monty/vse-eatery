@@ -42,6 +42,7 @@
 </template>
 
 <script>
+import io from 'socket.io-client'
 
 export default {
   data: ()=> ({
@@ -51,7 +52,7 @@ export default {
                 '118115'],
 
     csi: null,
-    socket: null,
+    socketIO: null,
 
   }),
   computed: {
@@ -62,39 +63,15 @@ export default {
   mounted() {
     this.app.home = this;
     this.csi = this.$root.$children[0].csInterface;
-    this.socket = this.$root.$children[0].socketIO;
+ 
+    console.log('demonty starting mounted function');
+
+    this.socketIO = io('http://localhost:9574', {
+      autoConnect: true,
+    });
 
 
-    this.addAppListeners();
-
-  },
-  methods: {
-    startServer(){
-      //this.app.socketIO.connect();
-      //console.log('attempting to start server panel');
-      // console.log(this.csi);
-      // try{
-      //   this.csi.requestOpenExtension("com.vse-eatery-s.panel", "");}
-      //   catch(err){
-      //     console.log(err);
-      //   }
-
-      // console.log(this.csi.getExtension);
-    },
-    connectTo(){
-      console.log('attempting to connect to server')
-      this.app.socketIO.connect();
-      
-    },
-    runScript(){
-      this.csi.evalScript("getOpenDocumentVariables()");
-    },
-    addAppListeners(){
-        //listener for getOpenDocumentVariables()
-        //returns array of illustrator variables
-        // event.data = [{name, type}]
-        // type is either text or image
-        this.csi.addEventListener("document.variables", function(event){
+    this.csi.addEventListener('document.variables', (event) => {
         console.log('received message from ILST');
         console.log('event type: ' + event.type);
         if(event.data.length == 0){
@@ -104,14 +81,26 @@ export default {
         console.log('data: ->');
         console.log(event.data);
 
-        window.socketIO.emit('data', JSON.stringify(event));
-        console.log('socket');
-        console.log(window.socketIO);
+        this.socketIO.emit('give.variables', JSON.stringify({type: event.type, data: event.data}));
       });
 
-    },
+    this.socketIO.on('get.variables', (data) => {
+      console.log('calling OpenWorkingFile')
+      console.log(data)
+      this.csi.evalScript(`OpenWorkingFile('${encodeURI(data)}')`)
+      this.csi.evalScript("getOpenDocumentVariables()");
+      });
+
+      console.log('demonty ended mounted function');
   },
-};
+  methods: {
+    connectTo(){
+      console.log('attempting to connect to server')
+      this.socketIO.connect();
+      
+    },
+  }
+}
 </script>
 
 <style>

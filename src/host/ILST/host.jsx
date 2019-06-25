@@ -16,7 +16,26 @@ function getOpenDocumentVariables(){
     event.data = JSON.stringify(arr);
     event.dispatch();
 
+    CloseOpenDocument();
     return;
+}
+
+function OpenWorkingFile(fileName){
+    console.log('JSX: inside script method OpenWorkingFile')
+    console.log('JSX: ' + fileName);
+    var workingFile;
+
+    workingFile = new File(fileName);
+    
+    try{ 
+        open(workingFile)
+    }
+    catch(err){
+        console.log('JSX: Something went wrong.');
+    }
+
+    console.log('JSX: end of method')
+    console.log(workingFile);
 }
 
 function CloseOpenDocument(){

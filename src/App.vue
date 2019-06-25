@@ -19,7 +19,6 @@ import menus from "./components/main/menus.vue";
 import alert from "./components/main/alert";
 import notification from "./components/main/notification.vue";
 import navbar from "./components/main/navbar.vue";
-import io from "socket.io-client"
 
 export default {
   name: "App",
@@ -38,7 +37,6 @@ export default {
   },
   data: () => ({
     csInterface: null,
-    socketIO: null,
     identity: null,
     stylizer: null,
     progress: null,
@@ -57,15 +55,6 @@ export default {
     console.clear();
     this.csInterface = new CSInterface();
     this.csInterface.addEventListener("console", this.consoler);
-
-    console.log('demonty starting mounted function');
-
-    window.socketIO = io('http://localhost:9574', {
-      autoConnect: false,
-    });
-    this.socketIO = window.socketIO;
-
-    console.log('demonty ended mounted function');
     // Utility components are already mounted prior to this
 
     console.log(
