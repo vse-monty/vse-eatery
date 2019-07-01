@@ -33,11 +33,11 @@
           <Menu>vse-eatery</Menu>
           <Geometry>
             <Size>
-              <Height>400</Height>
+              <Height>500</Height>
               <Width>280</Width>
             </Size>
             <MaxSize>
-              <Height>500</Height>
+              <Height>700</Height>
               <Width>598</Width>
             </MaxSize>
             <MinSize>
