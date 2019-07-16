@@ -42,3 +42,10 @@ function CloseOpenDocument(){
 
     app.activeDocument.close();
 }
+
+function ProcessOrder(order){
+
+    console.log('JSX: ProcessOrder method');
+    
+    OpenWorkingFile(encodeURI(order.file_art));
+}

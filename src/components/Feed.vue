@@ -31,6 +31,7 @@ export default {
 
     csi: null,
     socketIO: null,
+    workingOrder: null,
 
   }),
   computed: {
@@ -67,6 +68,13 @@ export default {
       console.log(data)
       this.csi.evalScript(`OpenWorkingFile('${encodeURI(data)}')`)
       this.csi.evalScript("getOpenDocumentVariables()");
+      });
+
+    this.socketIO.on('process.order', (data) => {
+      console.log('calling ProcessOrder')
+      this.workingOrder = JSON.parse(data);
+      console.log(this.workingOrder);
+      this.csi.evalScript('ProcessOrder(' + JSON.stringify(this.workingOrder) + ')');
       });
 
       console.log('demonty ended mounted function');
