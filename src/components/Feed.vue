@@ -21,6 +21,8 @@
 
 <script>
 import io from 'socket.io-client'
+const BASE_PATH = '/c/users/dmontgomery/documents/test/vse/work order files';
+const BASE_PRINT_PATH = '/c/users/dmontgomery/documents/test/vse/WIP';
 
 export default {
   data: ()=> ({
@@ -42,8 +44,11 @@ export default {
   mounted() {
     this.app.home = this;
     this.csi = this.$root.$children[0].csInterface;
- 
+
     console.log('demonty starting mounted function');
+
+    var path = './src/host/ILST/host.jsx';
+    jsx.file(path);
 
     this.socketIO = io('http://localhost:9574', {
       autoConnect: true,
@@ -55,6 +60,8 @@ export default {
         console.log('event type: ' + event.type);
         if(event.data.length == 0){
           console.log('no data received. file either has no variables, or is corrupted.');
+          console.log('data: ->');
+          console.log(event.data);
           return;
         }
         console.log('data: ->');
@@ -64,17 +71,16 @@ export default {
       });
 
     this.socketIO.on('get.variables', (data) => {
-      console.log('calling OpenWorkingFile')
-      console.log(data)
-      this.csi.evalScript(`OpenWorkingFile('${encodeURI(data)}')`)
-      this.csi.evalScript("getOpenDocumentVariables()");
+
+            jsx.eval(`GetOpenDocumentVariables('${data}')`, function(result){
+              console.log(`result: ${result}`);
+            });
       });
 
     this.socketIO.on('process.order', (data) => {
-      console.log('calling ProcessOrder')
-      this.workingOrder = JSON.parse(data);
-      console.log(this.workingOrder);
-      this.csi.evalScript('ProcessOrder(' + JSON.stringify(this.workingOrder) + ')');
+        console.log('calling ProcessOrder')
+        this.workingOrder = JSON.parse(data);
+        this.processOrder();
       });
 
       console.log('demonty ended mounted function');
@@ -84,6 +90,59 @@ export default {
       
       console.log('attempting to connect to server')
       this.socketIO.connect();
+    },
+
+    processOrder(){
+      let order = this.workingOrder;
+      var filename;
+
+      //create the file from template, fill in variables, then save as new file. 
+      jsx.eval(`OpenWorkingFile('${encodeURI(order.file_art)}')`); //open the template
+
+      for(var i = 0; i < order.variables.length; i++){ //replace the variables
+        jsx.eval('ReplaceVariablesinOpen(' + JSON.stringify(order.variables[i]) + ')');
+      }
+
+      //create the folder structure (if it doesn't already exist)
+      var filename = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}`;
+      jsx.eval(`mkdir('${filename}')`);
+      
+      //save the file
+      filename = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}.ai`;
+      jsx.eval(`SaveAsAI('${filename}')`, function(result){
+        order.art = order.art_back = filename;
+        console.log('order after save: ')
+        console.log(order);
+        console.log(`result: ${result}`);
+        jsx.eval('CloseOpenDocument()');
+      });
+
+      
+
+      if(order.same_face == false){ //need to do the same process for the back file
+        var filename_back;
+        //create the file from template, fill in variables, then save as new file. 
+        jsx.eval(`OpenWorkingFile('${encodeURI(order.file_art_back)}')`); //open the template
+
+        for(var i = 0; i < order.variables.length; i++){ //replace the variables
+          jsx.eval('ReplaceVariablesinOpen(' + JSON.stringify(order.variables[i]) + ')');
+        }
+        
+        //save the file
+        filename_back = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}_back.ai`;
+        jsx.eval(`SaveAsAI('${filename}')`, function(result){
+          order.art_back = filename_back;
+          console.log('order after save: ')
+          console.log(order);
+          console.log(`result: ${result}`);
+          jsx.eval('CloseOpenDocument()');
+        });
+
+        
+      }
+
+      //do proof...
+
     },
   }
 }

@@ -99,7 +99,7 @@ export default {
       // Preloads universal scripts and main host script file
       this.loadScript(`${this.identity.root}/src/host/universal/json2.jsx`);
       this.loadScript(`${this.identity.root}/src/host/universal/Console.jsx`);
-      this.loadScript(`${this.identity.root}/src/host/${this.identity.appName}/host.jsx`);
+      //this.loadScript(`${this.identity.root}/src/host/ILST/host.jsx`);
     },
     consoler(msg) {
       // Catches all console.log() usage in .jsx files via CSEvent
