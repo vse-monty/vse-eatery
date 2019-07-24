@@ -1,5 +1,5 @@
 function OpenWorkingFile(filename){
-    
+    console.log('OpenWorkingFile()');
     var workingFile = new File(filename);
 
     try{ 
@@ -15,7 +15,6 @@ function OpenWorkingFile(filename){
 function GetOpenDocumentVariables(filename){
 
     OpenWorkingFile(filename);
-
     var docVars, doc;
     doc = app.activeDocument;
     docVars = doc.variables;
@@ -35,37 +34,8 @@ function GetOpenDocumentVariables(filename){
     CloseOpenDocument();
 }
 
-function ReplaceVariablesinOpen(varr){
-    //Grab the Variables Array from Illustrator
-
-    var variables = app.activeDocument.variables;
-    var appDoc = app.activeDocument.pageItems[0];
-    var linkedSrc,newFile;
-
-    //Loop through all the variables objects in the .ai file
-    for(var j = 0;j<variables.length; j++){
-
-        //if the variable name in illustrator, matches a 'key' in the Order Variables array (varr)
-        if(variables[j].name == varr.name){
-
-            if(variables[j].kind == VariableKind.TEXTUAL){ //this is for text-variable objects
-
-                variables[j].pageItems[0].contents = varr.value;
-            }
-            else if(variables[j].kind == VariableKind.IMAGE){ //linked image objects
-
-                linkedSrc = varr.value;
-                newFile = new File(linkedSrc);
-
-                variables[j].pageItems[0].relink(newFile);
-            }  
-        }
-    }
-
-    redraw();
-}
-
-function ReplaceVariablesinProof(order){
+function ReplaceVariablesinOpen(order){
+    console.log('ReplaceVariablesinOpen()');
     //Grab the Variables Array from Illustrator
     var variables = app.activeDocument.variables;
     var appDoc = app.activeDocument.pageItems[0];
@@ -93,15 +63,13 @@ function ReplaceVariablesinProof(order){
 }
 
 function SaveAsAI(filename){
-
-    console.log('JSX: SaveAsAI => Attempting to save file: ' + filename);
-
+    console.log('SaveAsAI()');
     if(app.documents.length > 0){
         try{
             var opts = new IllustratorSaveOptions();
             var aiDoc = new File(filename);
             app.activeDocument.saveAs(aiDoc, opts);
-            
+            CloseOpenDocument();
         } catch(err){
             console.log(err);
             console.log(err.name);
@@ -111,18 +79,19 @@ function SaveAsAI(filename){
 }
 
 function mkdir(path) {  
-  var folder = new Folder(path);  
-     
-  if (!folder.exists) {  
+    console.log('mkdir()');
+    var folder = new Folder(path);  
+        
+    if (!folder.exists) {  
     var parts = path.split('/');  
     parts.pop();  
     mkdir(parts.join('/'));  
     folder.create();  
-  }  
+    }  
 } 
 
 function CloseOpenDocument(){
-
+    console.log('CloseOpenDocument()');
     app.activeDocument.close();
 }
 
