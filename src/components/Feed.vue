@@ -111,7 +111,7 @@ export default {
 
     processOrder () {
       
-      let order = this.workingOrder;
+      var order = this.workingOrder;
       let j = jsx;
       let runscript = function(script){
           return new Promise(function(resolve, reject){
@@ -123,30 +123,42 @@ export default {
       let filename = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}.ai`;
       let filename_back = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}_back.ai`;
       
-      let round = -Math.round(-order.orderNumber / 1000) * 1000;
+      let round = Math.floor(order.orderNumber / 1000) * 1000;
       let foldername_proof = `${BASE_PATH}/_proofs/${round}`;
       let filename_proof = `${BASE_PATH}/_proofs/${round}/${order.orderNumber}_proof.ai`;
 
       if(order.same_face == true){ //this sucks, but i need it to work for now
-        order.art_back = order.art;
+
+        order.art_back = order.art = filename;
         runscript(`OpenWorkingFile('${encodeURI(order.file_art)}')`)
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
           .then(runscript(`mkdir('${foldername}')`))
-          .then(runscript(`SaveAsAI('${encodeURI(filename)}')`))
+          .then(runscript(`SaveAsAI('${filename}')`))
+          .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
+          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
+          .then(runscript(`mkdir('${foldername_proof}')`))
+          .then(runscript(`SaveAsAI('${filename_proof}')`))
           .catch(function(error){console.log(error)})
       
       } else {
 
+        order.art = filename;
+        order.art_back = filename_back;
         runscript(`OpenWorkingFile('${encodeURI(order.file_art)}')`)
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
           .then(runscript(`mkdir('${foldername}')`))
-          .then(runscript(`SaveAsAI('${encodeURI(filename)}')`))
+          .then(runscript(`SaveAsAI('${filename}')`))
           .then(runscript(`OpenWorkingFile('${encodeURI(order.file_art_back)}')`))
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
-          .then(runscript(`SaveAsAI('${encodeURI(filename_back)}')`))
+          .then(runscript(`SaveAsAI('${filename_back}')`))
+          .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
+          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
+          .then(runscript(`mkdir('${foldername_proof}')`))
+          .then(runscript(`SaveAsAI('${filename_proof}')`))
           .catch(function(error){console.log(error)})
-
       }
+
+      //send complete
     },
   }
 }
