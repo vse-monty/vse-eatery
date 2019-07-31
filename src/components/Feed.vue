@@ -80,23 +80,14 @@ export default {
     this.socketIO.on('process.order', (data) => {
 
         console.log('process.order received from server!');
-
         this.workingOrder = JSON.parse(data);
-        this.workingOrder.art = '';
-        this.workingOrder.art_back = '';
-        this.workingOrder.variablesObj = {};
-        
-        let arr = this.workingOrder.variablesArr;
-        let obj = {};
+        this.processOrder(this.workingOrder);
+      });
 
-        for(var i = 0; i < arr.length; i++){
-          obj[arr[i].name] = arr[i].value;
-        }
+    this.socketIO.on('process.batch', (data) => {
 
-        Object.assign(this.workingOrder.variablesObj, obj);
-
-        console.log(this.workingOrder);
-        this.processOrder();
+        console.log('process.batch received from server!');
+        this.processBatch(JSON.parse(data));
       });
 
   },
@@ -109,14 +100,28 @@ export default {
       this.socketIO.connect();
     },
 
-    processOrder () {
+    processOrder (order) {
+
+      order.art = '';
+      order.art_back = '';
+      order.variablesObj = {};
       
-      var order = this.workingOrder;
+      let arr = order.variablesArr;
+      let obj = {};
+
+      for(var i = 0; i < arr.length; i++){
+        obj[arr[i].name] = arr[i].value;
+      }
+
+      Object.assign(order.variablesObj, obj);
+
+      console.log(order);
+
       let j = jsx;
       let runscript = function(script){
-          return new Promise(function(resolve, reject){
-          j.eval(script, resolve);
-        });
+          return new Promise( function (resolve, reject) {
+            j.eval(script, resolve);
+        } );
       }
 
       let foldername = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}`;
@@ -159,6 +164,13 @@ export default {
       }
 
       //send complete
+    },
+
+    processBatch (orders_arr) {
+
+      for (const order of orders_arr) {
+        this.processOrder(order);
+      }
     },
   }
 }
