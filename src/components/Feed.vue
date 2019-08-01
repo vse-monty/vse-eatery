@@ -59,6 +59,11 @@ export default {
       autoConnect: true,
     });
 
+    this.socketIO.on('connect', () => {
+
+      this.socketIO.emit('illustrator'); //let the server know who we are
+    });
+
 
     this.csi.addEventListener('document.variables', (event) => {
 
@@ -172,7 +177,11 @@ export default {
         this.processOrder(order);
       }
     },
-  }
+  },
+
+  beforeDestroy () {
+    this.socketIO.disconnect();
+  },
 }
 </script>
 
