@@ -1,18 +1,21 @@
-function OpenWorkingFile(filename){
+app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+
+function OpenWorkingFile (filename) {
+
     console.log('OpenWorkingFile()');
     var workingFile = new File(filename);
 
-    try{ 
+    try { 
         open(workingFile);
     }
-    catch(err){
+    catch (err) {
         console.log('JSX ERROR: ' + err);
         console.log('JSX ERROR: ' + err.name);
         console.log('JSX ERROR: ' + err.message);
     }
 }
 
-function GetOpenDocumentVariables(filename){
+function GetOpenDocumentVariables (filename) {
 
     OpenWorkingFile(filename);
     var docVars, doc;
@@ -23,6 +26,7 @@ function GetOpenDocumentVariables(filename){
     var arr = [];
 
     for(var i = 0; i < len; i++){
+        
         arr.push( { name: docVars[i].name, type: docVars[i].kind == VariableKind.TEXTUAL ? 'text' : 'image' } );
     }
 
@@ -34,7 +38,8 @@ function GetOpenDocumentVariables(filename){
     CloseOpenDocument();
 }
 
-function ReplaceVariablesinOpen(order){
+function ReplaceVariablesinOpen (order) {
+
     console.log('ReplaceVariablesinOpen()');
     //Grab the Variables Array from Illustrator
     var variables = app.activeDocument.variables;
@@ -46,11 +51,14 @@ function ReplaceVariablesinOpen(order){
 
         //if the variable name in illustrator, matches a 'key' in the Order object
         if(variables[j].name in order){
+
             if(variables[j].kind == VariableKind.TEXTUAL){ //this is for text-variable objects
+
                 variables[j].pageItems[0].contents = order[variables[j].name];
                 // var var1 = variables[j].pageItems[0];
             }
             else if(variables[j].kind == VariableKind.IMAGE){ //linked image objects
+
                 linkedSrc = order[variables[j].name];
                 newFile = new File(linkedSrc);
 
@@ -62,15 +70,17 @@ function ReplaceVariablesinOpen(order){
     redraw();
 }
 
-function SaveAsAI(filename){
+function SaveAsAI (filename) {
+
     console.log('SaveAsAI()');
     if(app.documents.length > 0){
-        try{
+
+        try {
             var opts = new IllustratorSaveOptions();
             var aiDoc = new File(filename);
             app.activeDocument.saveAs(aiDoc, opts);
-            CloseOpenDocument();
-        } catch(err){
+
+        } catch (err) {
             console.log(err);
             console.log(err.name);
             console.log(err.message);
@@ -78,7 +88,52 @@ function SaveAsAI(filename){
     }
 }
 
-function mkdir(path) {  
+function SaveAsPDF (data) {
+
+    console.log('SaveAsPDF()');
+    if(app.documents.length > 0){
+
+        try{
+            var opts = new PDFSaveOptions();
+                opts.pDFPreset = data.quality;
+                opts.viewAfterSaving = data.view;
+            
+            var pdfDoc = new File(data.filename);
+
+            app.activeDocument.saveAs(pdfDoc, opts);
+
+        } catch (err) {
+            console.log(err);
+            console.log(err.name);
+            console.log(err.message);
+        }
+    }
+}
+
+function Print () {
+
+    console.log('Print()');
+    if(app.documents.length > 0){
+
+        var colorManagementOpts = new PrintColorManagementOptions();
+        var opts = new PrintOptions();
+            ops.colorManagementOptions = colorManagementOpts;
+            opts.printPreset = '[Default]'
+        
+        try {
+            app.activeDocument.print(opts);
+
+        } catch(err) {
+            console.log(err);
+            console.log(err.name);
+            console.log(err.message);
+        }
+    }
+
+}
+
+function mkdir (path) {
+
     console.log('mkdir()');
     var folder = new Folder(path);  
         
@@ -90,7 +145,8 @@ function mkdir(path) {
     }  
 } 
 
-function CloseOpenDocument(){
+function CloseOpenDocument () {
+
     console.log('CloseOpenDocument()');
     app.activeDocument.close();
 }

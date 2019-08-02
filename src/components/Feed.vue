@@ -25,6 +25,8 @@ import series from 'async/series'
 import { Promise } from 'q';
 const BASE_PATH = '/c/users/dmontgomery/documents/test/vse/work order files';
 const BASE_PRINT_PATH = '/c/users/dmontgomery/documents/test/vse/WIP';
+const PDF_LQ = 'Small PDF';
+const PDF_HQ = '[High Quality Print]';
 
 export default {
   data: ()=> ({
@@ -136,6 +138,7 @@ export default {
       let round = Math.floor(order.orderNumber / 1000) * 1000;
       let foldername_proof = `${BASE_PATH}/_proofs/${round}`;
       let filename_proof = `${BASE_PATH}/_proofs/${round}/${order.orderNumber}_proof.ai`;
+      let filename_proof_pdf = `${BASE_PRINT_PATH}/${order.orderNumber}.pdf`
 
       if(order.same_face == true){ //this sucks, but i need it to work for now
 
@@ -144,10 +147,14 @@ export default {
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
           .then(runscript(`mkdir('${foldername}')`))
           .then(runscript(`SaveAsAI('${filename}')`))
+          .then(runscript(`CloseOpenDocument()`))
           .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
           .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
+          .then(runscript(`Print()`))
+          .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: false, filename: filename_proof_pdf})})`))
+          .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
       
       } else {
@@ -158,13 +165,18 @@ export default {
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
           .then(runscript(`mkdir('${foldername}')`))
           .then(runscript(`SaveAsAI('${filename}')`))
+          .then(runscript(`CloseOpenDocument()`))
           .then(runscript(`OpenWorkingFile('${encodeURI(order.file_art_back)}')`))
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
           .then(runscript(`SaveAsAI('${filename_back}')`))
+          .then(runscript(`CloseOpenDocument()`))
           .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
           .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
+          .then(runscript(`Print()`))
+          .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, filename: filename_proof_pdf})})`))
+          .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
       }
 
