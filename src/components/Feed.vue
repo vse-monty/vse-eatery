@@ -23,8 +23,8 @@
 import io from 'socket.io-client'
 import series from 'async/series'
 import { Promise } from 'q';
-const BASE_PATH = '/c/users/dmontgomery/documents/test/vse/work order files';
-const BASE_PRINT_PATH = '/c/users/dmontgomery/documents/test/vse/WIP';
+// const BASE_PATH = '/c/users/dmontgomery/documents/test/vse/work order files';
+// const BASE_PRINT_PATH = '/c/users/dmontgomery/documents/test/vse/WIP';
 const PDF_LQ = 'Small PDF';
 const PDF_HQ = '[High Quality Print]';
 
@@ -39,6 +39,12 @@ export default {
     csi: null,
     socketIO: null,
     workingOrder: null,
+
+    settings: {
+
+      base_path: null,
+      base_print_path: null,
+    }
 
   }),
 
@@ -64,6 +70,12 @@ export default {
     this.socketIO.on('connect', () => {
 
       this.socketIO.emit('illustrator'); //let the server know who we are
+    });
+
+    this.socketIO.on('settings', (data) => {
+
+      Object.assign(this.settings, JSON.parse(data));
+      console.log(this.settings.working);
     });
 
 
@@ -113,6 +125,8 @@ export default {
       order.art_back = '';
       order.variablesObj = {};
       
+      const BASE_PATH = this.settings.working.replace(/\\/g, '/');
+      const BASE_PRINT_PATH = this.settings.print.replace(/\\/g, '/');
       let arr = order.variablesArr;
       let obj = {};
 
@@ -138,8 +152,10 @@ export default {
       let round = Math.floor(order.orderNumber / 1000) * 1000;
       let foldername_proof = `${BASE_PATH}/_proofs/${round}`;
       let filename_proof = `${BASE_PATH}/_proofs/${round}/${order.orderNumber}_proof.ai`;
-      let filename_proof_pdf = `${BASE_PRINT_PATH}/${order.orderNumber}.pdf`
-
+      let filename_proof_pdf = `${BASE_PRINT_PATH}/${order.orderNumber}.pdf`;
+      
+      console.log(filename);
+      
       if(order.same_face == true){ //this sucks, but i need it to work for now
 
         order.art_back = order.art = filename;
@@ -152,7 +168,7 @@ export default {
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
           .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
-          .then(runscript(`Print()`))
+          //.then(runscript(`Print()`))
           .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: false, filename: filename_proof_pdf})})`))
           .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
@@ -174,7 +190,7 @@ export default {
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
           .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
-          .then(runscript(`Print()`))
+          //.then(runscript(`Print()`))
           .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, filename: filename_proof_pdf})})`))
           .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
