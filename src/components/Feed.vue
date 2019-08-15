@@ -101,6 +101,7 @@ export default {
         console.log('process.order received from server!');
         this.workingOrder = JSON.parse(data);
         this.processOrder(this.workingOrder);
+        this.socketIO.emit('order.completed', data);
       });
 
     this.socketIO.on('process.batch', (data) => {
@@ -125,8 +126,8 @@ export default {
       order.art_back = '';
       order.variablesObj = {};
       
-      const BASE_PATH = this.settings.working.replace(/\\/g, '/');
-      const BASE_PRINT_PATH = this.settings.print.replace(/\\/g, '/');
+      const BASE_PATH = this.settings.working ? this.settings.working.replace(/\\/g, '/') : `${this.app.identity.root}/working`;
+      const BASE_PRINT_PATH = this.settings.working ? this.settings.print.replace(/\\/g, '/') : `${this.app.identity.root}/print`;
       let arr = order.variablesArr;
       let obj = {};
 
@@ -166,9 +167,9 @@ export default {
           .then(runscript(`CloseOpenDocument()`))
           .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
           .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
-          .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
           //.then(runscript(`Print()`))
+          .then(runscript(`mkdir('${BASE_PRINT_PATH}')`))
           .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: false, filename: filename_proof_pdf})})`))
           .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
@@ -191,18 +192,19 @@ export default {
           .then(runscript(`mkdir('${foldername_proof}')`))
           .then(runscript(`SaveAsAI('${filename_proof}')`))
           //.then(runscript(`Print()`))
+          .then(runscript(`mkdir('${BASE_PRINT_PATH}')`))
           .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, filename: filename_proof_pdf})})`))
           .then(runscript(`CloseOpenDocument()`))
           .catch(function(error){console.log(error)})
       }
-
-      //send complete
     },
 
     processBatch (orders_arr) {
 
       for (const order of orders_arr) {
+      
         this.processOrder(order);
+        this.socketIO.emit('order.completed', JSON.stringify(order));  
       }
     },
   },
