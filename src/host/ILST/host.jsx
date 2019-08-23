@@ -3,6 +3,8 @@ app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 function OpenWorkingFile (filename) {
 
     console.log('OpenWorkingFile()');
+    if(filename == null) return
+    
     var workingFile = new File(filename);
 
     try { 
@@ -17,30 +19,35 @@ function OpenWorkingFile (filename) {
 
 function GetOpenDocumentVariables (filename) {
 
-    OpenWorkingFile(filename);
-    var docVars, doc;
-    doc = app.activeDocument;
-    docVars = doc.variables;
+    var arr = []
 
-    var len = docVars.length;
-    var arr = [];
+    if(filename !== null){
 
-    for(var i = 0; i < len; i++){
-        
-        arr.push( { name: docVars[i].name, type: docVars[i].kind == VariableKind.TEXTUAL ? 'text' : 'image' } );
+        OpenWorkingFile(filename)
+
+        var doc     = app.activeDocument
+        var docVars = doc.variables
+        var len     = docVars.length
+
+        for(var i = 0; i < len; i++){
+            
+            arr.push({ name: docVars[i].name, type: docVars[i].kind == VariableKind.TEXTUAL ? 'text' : 'image' })
+        }
+
+        CloseOpenDocument();
     }
 
-    var event = new CSXSEvent();
-    event.type = "document.variables";
-    event.data = JSON.stringify(arr);
-    event.dispatch();
-
-    CloseOpenDocument();
+    var  event      = new CSXSEvent();
+         event.type = "document.variables";
+         event.data = JSON.stringify(arr);
+         event.dispatch();
 }
 
 function ReplaceVariablesinOpen (order) {
 
     console.log('ReplaceVariablesinOpen()');
+    if(order == null) return
+
     //Grab the Variables Array from Illustrator
     var variables = app.activeDocument.variables;
     var appDoc = app.activeDocument.pageItems[0];
@@ -73,6 +80,8 @@ function ReplaceVariablesinOpen (order) {
 function SaveAsAI (filename) {
 
     console.log('SaveAsAI()');
+    if(filename == null || filename == '') return
+
     if(app.documents.length > 0){
 
         try {
@@ -91,6 +100,8 @@ function SaveAsAI (filename) {
 function SaveAsPDF (data) {
 
     console.log('SaveAsPDF()');
+    if(data.filename == null || data.filename == '') return
+
     if(app.documents.length > 0){
 
         try{
@@ -135,6 +146,8 @@ function Print () {
 function mkdir (path) {
 
     console.log('mkdir()');
+    if(path == null || path == '') return
+    
     var folder = new Folder(path);  
         
     if (!folder.exists) {  
