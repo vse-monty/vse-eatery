@@ -22,19 +22,17 @@
 <script>
 import io from 'socket.io-client'
 import series from 'async/series'
-import { Promise } from 'q';
-// const BASE_PATH = '/c/users/dmontgomery/documents/test/vse/work order files';
-// const BASE_PRINT_PATH = '/c/users/dmontgomery/documents/test/vse/WIP';
-const PDF_LQ = 'Small PDF';
-const PDF_HQ = '[High Quality Print]';
+import { Promise } from 'q'
+
+const PDF_LQ = 'Small PDF'
+const PDF_HQ = '[High Quality Print]'
+
+const runscript = function(script){ return new Promise( (resolve, reject) => { jsx.eval(script, resolve) }) }
 
 export default {
-  data: ()=> ({
+  data: () => ({
 
-    orders: [   '118104',
-                '118105',
-                '118106',
-                '118115'],
+    orders: [],
 
     csi: null,
     socketIO: null,
@@ -51,167 +49,243 @@ export default {
   computed: {
 
     app () {
-      return this.$root.$children[0];
+      return this.$root.$children[0]
     },
+
+    BASE_PATH () {
+      return this.settings.working ? this.settings.working.replace(/\\/g, '/') : `${this.app.identity.root}/working`
+    },
+
+    BASE_PRINT_PATH () {
+      return this.settings.working ? this.settings.print.replace(/\\/g, '/') : `${this.app.identity.root}/print`
+    }
   },
 
   mounted () {
 
-    this.app.home = this;
-    this.csi = this.$root.$children[0].csInterface;
+    this.app.home = this
+    this.csi = this.$root.$children[0].csInterface
 
-    var path = './src/host/ILST/host.jsx';
-    jsx.file(path);
+    var path = './src/host/ILST/host.jsx'
+    jsx.file(path)
 
-    this.socketIO = io('http://localhost:9574', {
-      autoConnect: true,
-    });
-
-    this.socketIO.on('connect', () => {
-
-      this.socketIO.emit('illustrator'); //let the server know who we are
-    });
-
-    this.socketIO.on('settings', (data) => {
-
-      Object.assign(this.settings, JSON.parse(data));
-      console.log(this.settings.working);
-    });
-
-
-    this.csi.addEventListener('document.variables', (event) => {
-
-        if(event.data.length == 0){
-
-          return;
-        }
-
-        this.socketIO.emit('give.variables', JSON.stringify({type: event.type, data: event.data}));
-      });
-
-    this.socketIO.on('get.variables', (data) => {
-
-            jsx.eval(`GetOpenDocumentVariables('${data}')`, function(result){
-              console.log(`result: ${result}`);
-            });
-      });
-
-    this.socketIO.on('process.order', (data) => {
-
-        console.log('process.order received from server!');
-        this.workingOrder = JSON.parse(data);
-        this.processOrder(this.workingOrder);
-        this.socketIO.emit('order.completed', data);
-      });
-
-    this.socketIO.on('process.batch', (data) => {
-
-        console.log('process.batch received from server!');
-        this.processBatch(JSON.parse(data));
-      });
-
+    this.socketIO = io('http://localhost:9574', { autoConnect: true })
+    this.BuildEventListeners();
   },
 
   methods: {
 
-    connectTo () {
+    ConnectTo () {
       
       console.log('attempting to connect to server')
       this.socketIO.connect();
     },
 
-    processOrder (order) {
+    async ProcessOrders (orders_pkg) {
 
-      order.art = '';
-      order.art_back = '';
-      order.variablesObj = {};
+      const keys = Object.keys(orders_pkg)
+
+      //for each order to process....
+      for(let key of keys){
+
+        //grab the order and the shared properties of the whole order, regardless of pages
+
+        const order              = orders_pkg[key]  //this is the object that will represent a single order in the list
+        const shared             = this.OrderSharedObject(order)  //the shared object properties of an order
+        let   proofs             = []  //proof page locations incase we need to make it multi-page
+        let   round              = Math.floor(shared.orderNumber / 1000) * 1000  //this is the folder number for final proofs
+        let   foldername         = null  //folder name placeholder
+        let   filename           = null  //file name placeholder
+        let   final_proof        = null
+
+        console.log(`order ${key} =>`)
+        console.log(order)
+        console.log(shared)
+
+        for(let j = 0; j < order.pages.length; j++){
+
+          const page_number       = j + 1  //for proofing and save-file naming
+          let   page_proof        = ''  //the return file-string to place in the proofs Array
+
+          let   page              = order.pages[j]
+                page.art          = ''
+                page.art_back     = ''
+                page.variablesObj = Object.assign({}, this.VarArrayToObject(page.variablesArr))
+                page.page_number  = page_number
+                page.total_pages  = order.pages.length
+                page.page_text    = `Page ${page.page_number} of ${page.total_pages}`
+
+
+          foldername    = `${this.BASE_PATH}/${shared.customer}/${shared.subdivision}/${page.type}/${shared.orderNumber}`
+          filename      = page.page_number == 1 ?
+                            `${foldername}/${shared.orderNumber}.ai`
+                          : `${foldername}/${shared.orderNumber}_${page.page_number}.ai`
+
+          page.art = await this.ProcessFile({ art:        encodeURI(page.file_art.replace(/\\/g, '/')),
+                                              vars:       JSON.stringify(page.variablesObj),
+                                              foldername: foldername,
+                                              filename:   filename })
+
+          if(!page.same_face){ //this will trigger if the page is double-faced with different faces
+
+            filename      = page.page_number == 1 ?
+                              `${foldername}/${shared.orderNumber}_back.ai`
+                            : `${foldername}/${shared.orderNumber}_${page.page_number}_back.ai`
+
+            page.art_back = await this.ProcessFile({ art:        encodeURI(page.file_art_back.replace(/\\/g, '/')),
+                                                     vars:       JSON.stringify(page.variablesObj),
+                                                     foldername: foldername,
+                                                     filename:   filename })
+          } else {
+            
+            page.art_back = page.art //otherwise we fill the back as the same art, just incase
+          }
+
+          //create the proof for this page
+          foldername = page.total_pages !== 1 ?
+                          `${foldername}/_proofs`
+                        : `${this.BASE_PATH}/_proofs/${round}`
+
+          filename   = page.page_number !== 1 ?
+                          `${foldername}/${shared.orderNumber}_${page.page_number}_proof.ai`
+                        : `${foldername}/${shared.orderNumber}_proof.ai`
+
+          page_proof = await this.ProcessFile({ art:        encodeURI(page.file_proof.replace(/\\/g, '/')),
+                                                vars:       JSON.stringify(Object.assign({}, page, shared)),
+                                                foldername: foldername,
+                                                filename:   filename })
+
+          proofs.push(encodeURI(page_proof));
+
+        } //end for
+        
+        //combine page-proofs into 1 order-proof
+        foldername  = `${this.BASE_PATH}/_proofs/${round}`
+        filename    = `${foldername}/${shared.orderNumber}_proof.ai`
+        final_proof = await this.SimplifyProofs({arr: proofs, folder: foldername, fn: filename})
+
+        foldername  = `${this.BASE_PRINT_PATH}/${round}`
+        filename    = `${this.BASE_PRINT_PATH}/${round}/${order.orderNumber}.pdf`
+        let pdf = {
+          art: final_proof,
+          folder: foldername,
+          file: filename,
+          quality: PDF_LQ,
+          view: true
+        }
+        
+        if(await this.SaveAsPDF(pdf)){
+
+         this.socketIO.emit('order.completed', JSON.stringify(order));
+        }
+       
+
+      } //end for
+    }, //end method
+
+    SimplifyProofs (data) {
+
+     return new Promise(function(resolve, reject) {
+       if(data.proofs == 1) return resolve(data.fn)
+       runscript(`SimplifyProof(${JSON.stringify(data.arr)})`)
+         .then(runscript(`mkdir('${data.folder}')`)) 
+         .then(runscript(`SaveAsAI('${data.fn}')`))
+         .then(runscript(`CloseOpenDocument()`))
+         .then(function(){ resolve(data.fn) })
+         .catch(function(error){ reject(error) }) 
+     })
+    },
+
+    ProcessFile (working) {
+
+     return new Promise(function(resolve, reject) {
+       runscript(`OpenWorkingFile('${working.art}')`)
+         .then(runscript(`ReplaceVariablesinOpen(${working.vars})`))
+         .then(runscript(`mkdir('${working.foldername}')`))
+         .then(runscript(`SaveAsAI('${working.filename}')`))
+         .then(runscript(`CloseOpenDocument()`))
+         .then(function(){ resolve(working.filename) })
+         .catch(function(error){ reject(error) }) 
+     })
+    },
+
+    SaveAsPDF (working) {
+
+      return new Promise(function(resolve, reject) {
+        runscript(`OpenWorkingFile('${working.art}')`)
+        .then(runscript(`mkdir('${working.folder}')`))
+        .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, file: working.file})})`))
+        .then(runscript(`CloseOpenDocument()`))
+        .then(function(){ resolve(true) })
+        .catch(function(error){ reject(error) }) 
+      })
+    },
+
+    VarArrayToObject (arr) { //takes the order's 'variablesArr' array of objects and turns it into an object
       
-      const BASE_PATH = this.settings.working ? this.settings.working.replace(/\\/g, '/') : `${this.app.identity.root}/working`;
-      const BASE_PRINT_PATH = this.settings.working ? this.settings.print.replace(/\\/g, '/') : `${this.app.identity.root}/print`;
-      let arr = order.variablesArr;
       let obj = {};
-
-      for(var i = 0; i < arr.length; i++){
-        obj[arr[i].name] = arr[i].value;
+      
+      for(let val of arr) {
+        obj[val.name] = val.value
       }
 
-      Object.assign(order.variablesObj, obj);
-
-      console.log(order);
-
-      let j = jsx;
-      let runscript = function(script){
-          return new Promise( function (resolve, reject) {
-            j.eval(script, resolve);
-        } );
-      }
-
-      let foldername = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}`;
-      let filename = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}.ai`;
-      let filename_back = `${BASE_PATH}/${order.customer}/${order.subdivision}/${order.type}/${order.orderNumber}/${order.orderNumber}_back.ai`;
-      
-      let round = Math.floor(order.orderNumber / 1000) * 1000;
-      let foldername_proof = `${BASE_PATH}/_proofs/${round}`;
-      let filename_proof = `${BASE_PATH}/_proofs/${round}/${order.orderNumber}_proof.ai`;
-      let filename_proof_pdf = `${BASE_PRINT_PATH}/${order.orderNumber}.pdf`;
-      
-      console.log(filename);
-      
-      if(order.same_face == true){ //this sucks, but i need it to work for now
-
-        order.art_back = order.art = filename;
-        runscript(`OpenWorkingFile('${encodeURI(order.file_art)}')`)
-          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
-          .then(runscript(`mkdir('${foldername}')`))
-          .then(runscript(`SaveAsAI('${filename}')`))
-          .then(runscript(`CloseOpenDocument()`))
-          .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
-          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
-          .then(runscript(`SaveAsAI('${filename_proof}')`))
-          //.then(runscript(`Print()`))
-          .then(runscript(`mkdir('${BASE_PRINT_PATH}')`))
-          .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: false, filename: filename_proof_pdf})})`))
-          .then(runscript(`CloseOpenDocument()`))
-          .catch(function(error){console.log(error)})
-      
-      } else {
-
-        order.art = filename;
-        order.art_back = filename_back;
-        runscript(`OpenWorkingFile('${encodeURI(order.file_art)}')`)
-          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
-          .then(runscript(`mkdir('${foldername}')`))
-          .then(runscript(`SaveAsAI('${filename}')`))
-          .then(runscript(`CloseOpenDocument()`))
-          .then(runscript(`OpenWorkingFile('${encodeURI(order.file_art_back)}')`))
-          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order.variablesObj)})`))
-          .then(runscript(`SaveAsAI('${filename_back}')`))
-          .then(runscript(`CloseOpenDocument()`))
-          .then(runscript(`OpenWorkingFile('${encodeURI(order.file_proof)}')`))
-          .then(runscript(`ReplaceVariablesinOpen(${JSON.stringify(order)})`))
-          .then(runscript(`mkdir('${foldername_proof}')`))
-          .then(runscript(`SaveAsAI('${filename_proof}')`))
-          //.then(runscript(`Print()`))
-          .then(runscript(`mkdir('${BASE_PRINT_PATH}')`))
-          .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, filename: filename_proof_pdf})})`))
-          .then(runscript(`CloseOpenDocument()`))
-          .catch(function(error){console.log(error)})
-      }
+      return obj
     },
 
-    processBatch (orders_arr) {
+    OrderSharedObject (order) {
 
-      for (const order of orders_arr) {
-      
-        this.processOrder(order);
-        this.socketIO.emit('order.completed', JSON.stringify(order));  
+      let keys = Object.keys(order)
+      let obj = {}
+
+      for(let idx of keys){
+
+        if(!Array.isArray(order[idx])){
+          obj[idx] = order[idx]
+        }
       }
+
+      obj.artist = 'VSE-BOT'
+      return obj
+    },
+
+    BuildEventListeners () {
+
+      /* 
+       * ==========================
+       *   SERVER EVENT LISTENERS
+       * ========================== 
+       */
+
+      //inform server that the socket emmiting is illustrator
+      this.socketIO.on('connect', () => { this.socketIO.emit('illustrator') })
+
+      //settings for file locations, etc... sent over from the app
+      this.socketIO.on('settings', (data) => { Object.assign(this.settings, JSON.parse(data)) })
+
+      //app is requesting to get the variables out of a file (data)
+      this.socketIO.on('get.variables', (data) => { jsx.eval(`GetOpenDocumentVariables('${data}')`) })
+
+      //app is requesting us to create the orders from provided data
+      this.socketIO.on('process', (data) => { this.ProcessOrders(JSON.parse(data)) })
+
+      /* 
+       * ===============================
+       *   ILLUSTRATOR EVENT LISTENERS
+       * ===============================
+       */
+
+      //illustrator message, sending variables found in the provided document
+      this.csi.addEventListener('document.variables', (event) => {
+        
+        if (event.data.length !== 0) {
+          this.socketIO.emit('give.variables', JSON.stringify({type: event.type, data: event.data}))
+        }
+      })
+
     },
   },
 
-  beforeDestroy () {
-    this.socketIO.disconnect();
-  },
+  beforeDestroy () { this.socketIO.disconnect() },
 }
 </script>
 
