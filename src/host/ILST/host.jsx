@@ -61,8 +61,8 @@ function ReplaceVariablesinOpen (order) {
 
             if(variables[j].kind == VariableKind.TEXTUAL){ //this is for text-variable objects
 
-                variables[j].pageItems[0].contents = order[variables[j].name];
-                // var var1 = variables[j].pageItems[0];
+                variables[j].pageItems[0].contents = BreakAtAsterisks(order[variables[j].name]);
+                TieToArtboardBounds(variables[j].pageItems[0], 3);
             }
             else if(variables[j].kind == VariableKind.IMAGE){ //linked image objects
 
@@ -195,6 +195,40 @@ function SimplifyProof (proofs) {
         }
     }
     redraw();
+}
+
+function TieToArtboardBounds (varr, amount) {
+
+    var rect = app.activeDocument.artboards[0].artboardRect; //artboard size/pos array
+    var bounds = rect[2] - rect[0]; //width of the artboard
+
+    bounds -= 72*amount; //72 is an inch
+
+    if(varr.typename == 'TextFrame'){
+        var remainder = varr.textRange.characterAttributes.size % 5;
+        varr.textRange.characterAttributes.size -= remainder; //josh likes rounds numbers
+
+        while(varr.width >= bounds) {
+            varr.textRange.characterAttributes.size -= 5; //decrement by 5 until size rests in the zone of bounds' width
+        }
+    }
+
+    redraw();
+}
+
+function BreakAtAsterisks (content) {
+    
+    var str  = content;
+	var temp = content.split(/\*/);
+
+    	if(temp !== undefined && temp.length > 1){
+            var a = temp[0]
+            var b = temp[1]
+            var fin = a + '\r' + b
+            str = (' ' + fin).slice(1)
+    	}
+
+    return str;
 }
 
 console.log('host.jsx loaded...');

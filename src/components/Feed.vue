@@ -93,14 +93,13 @@ export default {
         const order              = orders_pkg[key]  //this is the object that will represent a single order in the list
         const shared             = this.OrderSharedObject(order)  //the shared object properties of an order
         let   proofs             = []  //proof page locations incase we need to make it multi-page
-        let   round              = Math.floor(shared.orderNumber / 1000) * 1000  //this is the folder number for final proofs
+        let   round              = Math.floor(shared.order_number / 1000) * 1000  //this is the folder number for final proofs
         let   foldername         = null  //folder name placeholder
         let   filename           = null  //file name placeholder
         let   final_proof        = null
 
         console.log(`order ${key} =>`)
         console.log(order)
-        console.log(shared)
 
         for(let j = 0; j < order.pages.length; j++){
 
@@ -110,16 +109,18 @@ export default {
           let   page              = order.pages[j]
                 page.art          = ''
                 page.art_back     = ''
+                page.rider        = ''
+                page.rider_back   = ''
                 page.variablesObj = Object.assign({}, this.VarArrayToObject(page.variablesArr))
                 page.page_number  = page_number
                 page.total_pages  = order.pages.length
                 page.page_text    = `Page ${page.page_number} of ${page.total_pages}`
 
 
-          foldername    = `${this.BASE_PATH}/${shared.customer}/${shared.subdivision}/${page.type}/${shared.orderNumber}`
+          foldername    = `${this.BASE_PATH}/${shared.customer}/${shared.subdivision}/${page.type}/${shared.order_number}`
           filename      = page.page_number == 1 ?
-                            `${foldername}/${shared.orderNumber}.ai`
-                          : `${foldername}/${shared.orderNumber}_${page.page_number}.ai`
+                            `${foldername}/${shared.order_number}.ai`
+                          : `${foldername}/${shared.order_number}_${page.page_number}.ai`
 
           page.art = await this.ProcessFile({ art:        encodeURI(page.file_art.replace(/\\/g, '/')),
                                               vars:       JSON.stringify(page.variablesObj),
@@ -129,8 +130,8 @@ export default {
           if(!page.same_face){ //this will trigger if the page is double-faced with different faces
 
             filename      = page.page_number == 1 ?
-                              `${foldername}/${shared.orderNumber}_back.ai`
-                            : `${foldername}/${shared.orderNumber}_${page.page_number}_back.ai`
+                              `${foldername}/${shared.order_number}_back.ai`
+                            : `${foldername}/${shared.order_number}_${page.page_number}_back.ai`
 
             page.art_back = await this.ProcessFile({ art:        encodeURI(page.file_art_back.replace(/\\/g, '/')),
                                                      vars:       JSON.stringify(page.variablesObj),
@@ -141,14 +142,27 @@ export default {
             page.art_back = page.art //otherwise we fill the back as the same art, just incase
           }
 
+          if(page.has_riders){ //this will trigger if the page has riders
+
+            filename      = page.page_number == 1 ?
+                              `${foldername}/${shared.order_number}_rider.ai`
+                            : `${foldername}/${shared.order_number}_${page.page_number}_rider.ai`
+
+            page.rider = await this.ProcessFile({ art:        encodeURI(page.file_art_riders.replace(/\\/g, '/')),
+                                                     vars:       JSON.stringify(page.variablesObj),
+                                                     foldername: foldername,
+                                                     filename:   filename })
+            page.rider_back = page.rider
+          }
+
           //create the proof for this page
           foldername = page.total_pages !== 1 ?
                           `${foldername}/_proofs`
                         : `${this.BASE_PATH}/_proofs/${round}`
 
           filename   = page.page_number !== 1 ?
-                          `${foldername}/${shared.orderNumber}_${page.page_number}_proof.ai`
-                        : `${foldername}/${shared.orderNumber}_proof.ai`
+                          `${foldername}/${shared.order_number}_${page.page_number}_proof.ai`
+                        : `${foldername}/${shared.order_number}_proof.ai`
 
           page_proof = await this.ProcessFile({ art:        encodeURI(page.file_proof.replace(/\\/g, '/')),
                                                 vars:       JSON.stringify(Object.assign({}, page, shared)),
@@ -159,13 +173,16 @@ export default {
 
         } //end for
         
+        console.log('proofs => ' + order.order_number);
+        console.log(proofs);
         //combine page-proofs into 1 order-proof
         foldername  = `${this.BASE_PATH}/_proofs/${round}`
-        filename    = `${foldername}/${shared.orderNumber}_proof.ai`
+        filename    = `${foldername}/${shared.order_number}_proof.ai`
         final_proof = await this.SimplifyProofs({arr: proofs, folder: foldername, fn: filename})
 
-        foldername  = `${this.BASE_PRINT_PATH}/${round}`
-        filename    = `${this.BASE_PRINT_PATH}/${round}/${order.orderNumber}.pdf`
+        foldername  = `${this.BASE_PRINT_PATH}/`
+        filename    = `${this.BASE_PRINT_PATH}/${order.order_number}.pdf`
+
         let pdf = {
           art: final_proof,
           folder: foldername,
@@ -179,14 +196,18 @@ export default {
          this.socketIO.emit('order.completed', JSON.stringify(order));
         }
        
-
       } //end for
     }, //end method
 
     SimplifyProofs (data) {
 
+      if(data.arr.length == 1){
+        return new Promise(function (resolve, reject) {
+          resolve(data.fn)
+        })
+      } 
+     
      return new Promise(function(resolve, reject) {
-       if(data.proofs == 1) return resolve(data.fn)
        runscript(`SimplifyProof(${JSON.stringify(data.arr)})`)
          .then(runscript(`mkdir('${data.folder}')`)) 
          .then(runscript(`SaveAsAI('${data.fn}')`))
@@ -244,7 +265,7 @@ export default {
         }
       }
 
-      obj.artist = 'VSE-BOT'
+      obj.artist = 'Dan'
       return obj
     },
 
