@@ -91,6 +91,7 @@ export default {
         //grab the order and the shared properties of the whole order, regardless of pages
 
         const order              = orders_pkg[key]  //this is the object that will represent a single order in the list
+              order.pad          = 1 //this is for the proof margin padding
         const shared             = this.OrderSharedObject(order)  //the shared object properties of an order
         let   proofs             = []  //proof page locations incase we need to make it multi-page
         let   round              = Math.floor(shared.order_number / 1000) * 1000  //this is the folder number for final proofs
@@ -116,7 +117,6 @@ export default {
                 page.total_pages  = order.pages.length
                 page.page_text    = `Page ${page.page_number} of ${page.total_pages}`
 
-
           foldername    = `${this.BASE_PATH}/${shared.customer}/${shared.subdivision}/${page.type}/${shared.order_number}`
           filename      = page.page_number == 1 ?
                             `${foldername}/${shared.order_number}.ai`
@@ -132,7 +132,7 @@ export default {
             filename      = page.page_number == 1 ?
                               `${foldername}/${shared.order_number}_back.ai`
                             : `${foldername}/${shared.order_number}_${page.page_number}_back.ai`
-
+            page.pad      = 2
             page.art_back = await this.ProcessFile({ art:        encodeURI(page.file_art_back.replace(/\\/g, '/')),
                                                      vars:       JSON.stringify(page.variablesObj),
                                                      foldername: foldername,
@@ -147,8 +147,8 @@ export default {
             filename      = page.page_number == 1 ?
                               `${foldername}/${shared.order_number}_rider.ai`
                             : `${foldername}/${shared.order_number}_${page.page_number}_rider.ai`
-
-            page.rider = await this.ProcessFile({ art:        encodeURI(page.file_art_riders.replace(/\\/g, '/')),
+            page.pad      = 4
+            page.rider    = await this.ProcessFile({ art: encodeURI(page.file_art_riders.replace(/\\/g, '/')),
                                                      vars:       JSON.stringify(page.variablesObj),
                                                      foldername: foldername,
                                                      filename:   filename })

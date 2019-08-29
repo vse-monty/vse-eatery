@@ -62,7 +62,7 @@ function ReplaceVariablesinOpen (order) {
             if(variables[j].kind == VariableKind.TEXTUAL){ //this is for text-variable objects
 
                 variables[j].pageItems[0].contents = BreakAtAsterisks(order[variables[j].name]);
-                TieToArtboardBounds(variables[j].pageItems[0], 3);
+                TieToArtboardBounds(variables[j].pageItems[0], order.pad);
             }
             else if(variables[j].kind == VariableKind.IMAGE){ //linked image objects
 
