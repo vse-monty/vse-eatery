@@ -91,7 +91,7 @@ export default {
         //grab the order and the shared properties of the whole order, regardless of pages
 
         const order              = orders_pkg[key]  //this is the object that will represent a single order in the list
-              order.pad          = 1 //this is for the proof margin padding
+              order.pad          = 0 //this is for the proof margin padding
         const shared             = this.OrderSharedObject(order)  //the shared object properties of an order
         let   proofs             = []  //proof page locations incase we need to make it multi-page
         let   round              = Math.floor(shared.order_number / 1000) * 1000  //this is the folder number for final proofs
@@ -123,7 +123,7 @@ export default {
                           : `${foldername}/${shared.order_number}_${page.page_number}.ai`
 
           page.art = await this.ProcessFile({ art:        encodeURI(page.file_art.replace(/\\/g, '/')),
-                                              vars:       JSON.stringify(page.variablesObj),
+                                              vars:       page.variablesObj,
                                               foldername: foldername,
                                               filename:   filename })
 
@@ -221,7 +221,7 @@ export default {
 
      return new Promise(function(resolve, reject) {
        runscript(`OpenWorkingFile('${working.art}')`)
-         .then(runscript(`ReplaceVariablesinOpen(${working.vars})`))
+         .then(runscript(`ReplaceVariablesinOpen(${working.vars}`))
          .then(runscript(`mkdir('${working.foldername}')`))
          .then(runscript(`SaveAsAI('${working.filename}')`))
          .then(runscript(`CloseOpenDocument()`))

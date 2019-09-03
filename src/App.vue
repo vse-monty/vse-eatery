@@ -103,7 +103,7 @@ export default {
     },
     consoler(msg) {
       // Catches all console.log() usage in .jsx files via CSEvent
-      console.log(`${this.identity.appName}: ${msg.data}`);
+      console.log(msg.data);
     },
     getCSS(prop) {
       // Returns current value of CSS variable

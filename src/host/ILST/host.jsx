@@ -46,7 +46,6 @@ function GetOpenDocumentVariables (filename) {
 function ReplaceVariablesinOpen (order) {
 
     console.log('ReplaceVariablesinOpen()');
-    if(order == null) return
 
     //Grab the Variables Array from Illustrator
     var variables = app.activeDocument.variables;
@@ -217,16 +216,15 @@ function TieToArtboardBounds (varr, amount) {
 }
 
 function BreakAtAsterisks (content) {
-    
     var str  = content;
 	var temp = content.split(/\*/);
 
-    	if(temp !== undefined && temp.length > 1){
-            var a = temp[0]
-            var b = temp[1]
-            var fin = a + '\r' + b
-            str = (' ' + fin).slice(1)
-    	}
+    if(temp !== undefined && temp.length > 1){
+        var a = temp[0]
+        var b = temp[1]
+        var fin = a + '\r' + b
+        str = (' ' + fin).slice(1)
+    }
 
     return str;
 }
