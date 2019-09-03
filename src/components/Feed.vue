@@ -123,7 +123,7 @@ export default {
                           : `${foldername}/${shared.order_number}_${page.page_number}.ai`
 
           page.art = await this.ProcessFile({ art:        encodeURI(page.file_art.replace(/\\/g, '/')),
-                                              vars:       page.variablesObj,
+                                              vars:       JSON.stringify(page.variablesObj),
                                               foldername: foldername,
                                               filename:   filename })
 
@@ -219,9 +219,11 @@ export default {
 
     ProcessFile (working) {
 
+      console.log(working);
+
      return new Promise(function(resolve, reject) {
        runscript(`OpenWorkingFile('${working.art}')`)
-         .then(runscript(`ReplaceVariablesinOpen(${working.vars}`))
+         .then(runscript(`ReplaceVariablesinOpen(${working.vars})`))
          .then(runscript(`mkdir('${working.foldername}')`))
          .then(runscript(`SaveAsAI('${working.filename}')`))
          .then(runscript(`CloseOpenDocument()`))

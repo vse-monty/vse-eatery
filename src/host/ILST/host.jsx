@@ -52,14 +52,21 @@ function ReplaceVariablesinOpen (order) {
     var appDoc = app.activeDocument.pageItems[0];
     var linkedSrc,newFile;
 
+    
     //Loop through all the variables objects in the .ai file
     for(var j = 0;j<variables.length; j++){
 
         //if the variable name in illustrator, matches a 'key' in the Order object
+         try{
         if(variables[j].name in order){
 
+            if(variables[j].pageItems.length < 1){
+                console.log('pageItems less than 1');
+                continue;
+            }
+            
             if(variables[j].kind == VariableKind.TEXTUAL){ //this is for text-variable objects
-
+                
                 variables[j].pageItems[0].contents = BreakAtAsterisks(order[variables[j].name]);
                 TieToArtboardBounds(variables[j].pageItems[0], order.pad);
             }
@@ -71,8 +78,15 @@ function ReplaceVariablesinOpen (order) {
                 variables[j].pageItems[0].relink(newFile);
             }  
         }
+        }catch(err){
+            console.log('JSX ERROR: =>');
+            console.log(err);
+            console.log(variables[j].name);
+            console.log(variables[j]);
+            console.log(variables[j].pageItems);
+            console.log(variables[j].pageItems[0]);
+        }
     }
-
     redraw();
 }
 
