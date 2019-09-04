@@ -121,7 +121,7 @@ export default {
           filename      = page.page_number == 1 ?
                             `${foldername}/${shared.order_number}.ai`
                           : `${foldername}/${shared.order_number}_${page.page_number}.ai`
-
+          page.pad      = 1
           page.art = await this.ProcessFile({ art:        encodeURI(page.file_art.replace(/\\/g, '/')),
                                               vars:       JSON.stringify(page.variablesObj),
                                               foldername: foldername,
@@ -132,7 +132,7 @@ export default {
             filename      = page.page_number == 1 ?
                               `${foldername}/${shared.order_number}_back.ai`
                             : `${foldername}/${shared.order_number}_${page.page_number}_back.ai`
-            page.pad      = 2
+            page.pad      = 1
             page.art_back = await this.ProcessFile({ art:        encodeURI(page.file_art_back.replace(/\\/g, '/')),
                                                      vars:       JSON.stringify(page.variablesObj),
                                                      foldername: foldername,
@@ -163,7 +163,7 @@ export default {
           filename   = page.page_number !== 1 ?
                           `${foldername}/${shared.order_number}_${page.page_number}_proof.ai`
                         : `${foldername}/${shared.order_number}_proof.ai`
-
+          page.pad = 0
           page_proof = await this.ProcessFile({ art:        encodeURI(page.file_proof.replace(/\\/g, '/')),
                                                 vars:       JSON.stringify(Object.assign({}, page, shared)),
                                                 foldername: foldername,
