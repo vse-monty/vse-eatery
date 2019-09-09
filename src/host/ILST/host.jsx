@@ -39,7 +39,7 @@ function GetOpenDocumentVariables (filename) {
 
     var  event      = new CSXSEvent();
          event.type = "document.variables";
-         event.data = JSON.stringify(arr);
+         event.data = JSON.stringify({arr: JSON.stringify(arr), file: filename});
          event.dispatch();
 }
 

@@ -301,7 +301,7 @@ export default {
       this.csi.addEventListener('document.variables', (event) => {
         
         if (event.data.length !== 0) {
-          this.socketIO.emit('give.variables', JSON.stringify({type: event.type, data: event.data}))
+          this.socketIO.emit('give.variables', JSON.stringify(event.data))
         }
       })
 
