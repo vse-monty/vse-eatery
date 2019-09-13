@@ -33,6 +33,7 @@ export default {
   data: () => ({
 
     orders: [],
+    uses: 0,
 
     csi: null,
     socketIO: null,
@@ -89,7 +90,6 @@ export default {
       for(let key of keys){
 
         //grab the order and the shared properties of the whole order, regardless of pages
-
         const order              = orders_pkg[key]  //this is the object that will represent a single order in the list
               order.pad          = 0 //this is for the proof margin padding
         const shared             = this.OrderSharedObject(order)  //the shared object properties of an order
@@ -98,6 +98,7 @@ export default {
         let   foldername         = null  //folder name placeholder
         let   filename           = null  //file name placeholder
         let   final_proof        = null
+        let   opensUsed          = 0
 
         console.log(`order ${key} =>`)
         console.log(order)
@@ -116,6 +117,7 @@ export default {
                 page.page_number  = page_number
                 page.total_pages  = order.pages.length
                 page.page_text    = `Page ${page.page_number} of ${page.total_pages}`
+                page.substrate    = `${page.substrate} Signs`
 
           foldername    = `${this.BASE_PATH}/${shared.customer}/${shared.subdivision}/${page.type}/${shared.order_number}`
           filename      = page.page_number == 1 ?
@@ -126,7 +128,7 @@ export default {
                                               vars:       JSON.stringify(page.variablesObj),
                                               foldername: foldername,
                                               filename:   filename })
-
+          opensUsed += 2
           if(!page.same_face){ //this will trigger if the page is double-faced with different faces
 
             filename      = page.page_number == 1 ?
@@ -137,6 +139,7 @@ export default {
                                                      vars:       JSON.stringify(page.variablesObj),
                                                      foldername: foldername,
                                                      filename:   filename })
+            opensUsed += 2
           } else {
             
             page.art_back = page.art //otherwise we fill the back as the same art, just incase
@@ -153,6 +156,7 @@ export default {
                                                      foldername: foldername,
                                                      filename:   filename })
             page.rider_back = page.rider
+            opensUsed += 2
           }
 
           //create the proof for this page
@@ -168,9 +172,9 @@ export default {
                                                 vars:       JSON.stringify(Object.assign({}, page, shared)),
                                                 foldername: foldername,
                                                 filename:   filename })
-
-          proofs.push(encodeURI(page_proof));
-
+          opensUsed += 2
+          page.substrate = page.substrate.replace(/ Signs/, '')
+          proofs.push(encodeURI(page_proof))
         } //end for
         
         console.log('proofs => ' + order.order_number);
@@ -179,24 +183,27 @@ export default {
         foldername  = `${this.BASE_PATH}/_proofs/${round}`
         filename    = `${foldername}/${shared.order_number}_proof.ai`
         final_proof = await this.SimplifyProofs({arr: proofs, folder: foldername, fn: filename})
+        opensUsed  += proofs.length === 1 ? 0 : 2
 
         foldername  = `${this.BASE_PRINT_PATH}/`
         filename    = `${this.BASE_PRINT_PATH}/${order.order_number}.pdf`
-
+        
+        let view = this.settings.show_pdf ? this.settings.show_pdf : false
         let pdf = {
           art: final_proof,
           folder: foldername,
           file: filename,
           quality: PDF_LQ,
-          view: true
+          view: view
         }
         
         if(await this.SaveAsPDF(pdf)){
-
-         this.socketIO.emit('order.completed', JSON.stringify(order));
+          opensUsed += 2
+          this.socketIO.emit('order.completed', JSON.stringify(order))
+          this.uses += opensUsed
         }
-       
       } //end for
+      this.checkUses();
     }, //end method
 
     SimplifyProofs (data) {
@@ -206,7 +213,7 @@ export default {
           resolve(data.fn)
         })
       } 
-     
+
      return new Promise(function(resolve, reject) {
        runscript(`SimplifyProof(${JSON.stringify(data.arr)})`)
          .then(runscript(`mkdir('${data.folder}')`)) 
@@ -219,7 +226,7 @@ export default {
 
     ProcessFile (working) {
 
-      console.log(working);
+     console.log(working);
 
      return new Promise(function(resolve, reject) {
        runscript(`OpenWorkingFile('${working.art}')`)
@@ -237,7 +244,7 @@ export default {
       return new Promise(function(resolve, reject) {
         runscript(`OpenWorkingFile('${working.art}')`)
         .then(runscript(`mkdir('${working.folder}')`))
-        .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: true, file: working.file})})`))
+        .then(runscript(`SaveAsPDF(${JSON.stringify({quality: PDF_LQ, view: working.view, file: working.file})})`))
         .then(runscript(`CloseOpenDocument()`))
         .then(function(){ resolve(true) })
         .catch(function(error){ reject(error) }) 
@@ -278,7 +285,7 @@ export default {
        *   SERVER EVENT LISTENERS
        * ========================== 
        */
-
+      let uses = this.uses; //<= scope reasons
       //inform server that the socket emmiting is illustrator
       this.socketIO.on('connect', () => { this.socketIO.emit('illustrator') })
 
@@ -286,10 +293,13 @@ export default {
       this.socketIO.on('settings', (data) => { Object.assign(this.settings, JSON.parse(data)) })
 
       //app is requesting to get the variables out of a file (data)
-      this.socketIO.on('get.variables', (data) => { jsx.eval(`GetOpenDocumentVariables('${data}')`) })
+      this.socketIO.on('get.variables', (data) => { jsx.eval(`GetOpenDocumentVariables('${data}')`); uses += 2})
 
       //app is requesting us to create the orders from provided data
       this.socketIO.on('process', (data) => { this.ProcessOrders(JSON.parse(data)) })
+
+      //app is requesting us to close gracefully (probably for a restart)
+      this.socketIO.on('close.illy', () => { console.log('attempting to close illy'); jsx.eval('app.quit()') })
 
       /* 
        * ===============================
@@ -306,6 +316,15 @@ export default {
       })
 
     },
+
+    checkUses () {
+
+      if(this.uses >= 420){
+        console.log('this session has exceeded open/close limit. requesting reboot')
+        this.socketIO.emit('illustrator.reboot')
+      }
+
+    }
   },
 
   beforeDestroy () { this.socketIO.disconnect() },
