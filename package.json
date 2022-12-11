@@ -10,7 +10,7 @@
     "@mdi/font": "^3.6.95",
     "async": "^3.1.0",
     "core-js": "^2.6.5",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
     "types-for-adobe": "github:pravdomil/types-for-adobe",
